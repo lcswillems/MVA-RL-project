@@ -33,19 +33,19 @@ class InformationSet:
         self.player = h.player
 
     def __eq__(self, other):
-        return self._id == other._id
+        return self.id == other.id
 
     def __hash__(self):
-        return self._id
+        return self.id
 
     def __str__(self):
-        return str(self._id)
+        return str(self.id)
 
     def __repr__(self):
         return self.__str__()
 
     @abstractproperty
-    def _id(self):
+    def id(self):
         pass
 
     @abstractproperty

@@ -19,32 +19,33 @@ class RPSInformationSet(InformationSet):
         super().__init__(h)
 
     @property
-    def _id(self):
+    def id(self):
         return self.player
 
     @property
     def available_actions(self):
-        if self._id < 2:
+        if self.id < 2:
             return [0, 1, 2]
         return []
 
     @property
     def initial(self):
-        return self._id == 0
+        return self.id == 0
 
     @property
     def terminal(self):
-        return self._id == 2
+        return self.id == 2
 
 class RockPaperScissors:
     def __init__(self):
         self.nb_players = 2
         self.init_h = RPSHistory()
-
-    def u(self, h, player):
-        u1 = [
+        self._u_matrix = [
             [0, -1, 1],
             [1, 0, -1],
             [-1, 1, 0]
-        ][h.sequence[0]][h.sequence[1]]
+        ]
+
+    def u(self, h, player):
+        u1 = self._u_matrix[h.sequence[0]][h.sequence[1]]
         return [u1, -u1][player]

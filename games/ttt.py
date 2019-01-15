@@ -30,7 +30,7 @@ class TTTInformationSet(InformationSet):
             self._free_actions = [item for item in prev_h.I._free_actions]
             self._add_grid(prev_a, prev_h.player)
 
-        self.__id = 2*sum([self._get_grid(i)*3**i for i in range(9)]) + self.player
+        self._id = 2*sum([self._get_grid(i)*3**i for i in range(9)]) + self.player
 
     def _get_grid(self, id):
         return self.grid[id//3][id%3]
@@ -39,15 +39,9 @@ class TTTInformationSet(InformationSet):
         self.grid[id//3][id%3] = player+1
         self._free_actions.remove(id)
 
-    def __eq__(self, other):
-        return self._id == other._id
-
-    def __hash__(self):
-        return self._id
-
     @property
-    def _id(self):
-        return self.__id
+    def id(self):
+        return self._id
 
     @property
     def available_actions(self):
