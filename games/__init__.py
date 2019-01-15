@@ -1,1 +1,2 @@
-from .TTT.game import TicTacToe
+from .ttt import TicTacToe
+from .rps import RockPaperScissors
