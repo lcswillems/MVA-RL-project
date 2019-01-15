@@ -1,5 +1,4 @@
 import numpy as np
-np.random.seed(1)
 
 # All the notations are taken from: http://poker.cs.ualberta.ca/publications/NIPS07-cfr.pdf.
 # The code only works for perfect recall games.
@@ -7,16 +6,17 @@ np.random.seed(1)
 class CFR:
     """CFR algorithm."""
 
-    def __init__(self, G, init_policy="uniform"):
+    def __init__(self, G, init_policies="uniform"):
         self.G = G
         self._cache_tree_game()
         self.T = 0
-        if init_policy == "uniform":
-            self.σ = self._uniform_policy()
-        elif init_policy == "hot":
-            self.σ = self._hot_policy()
+
+        if init_policies == "uniform":
+            self.σ = self._uniform_policies()
+        elif init_policies == "hot":
+            self.σ = self._hot_policies()
         else:
-            raise ValueError("{} is not a correct value for `init_policy`.".format(init_policy))
+            raise ValueError("`{}` is not a correct value for `init_policies`.".format(init_policies))
 
     def _cache_tree_game(self):
         print("Caching game tree...")
@@ -67,7 +67,7 @@ class CFR:
                 next_h = h.next(a)
                 stack.append(next_h)
                 for i2 in range(self.G.nb_players):
-                    p = 1 if i == i2 else σ[h.I][a]
+                    p = 1 if i == i2 else σ[h.I.id][a]
                     π_[i2, next_h] = π_[i2, h] * p
 
         for hT in self.G.hTs:
@@ -78,7 +78,7 @@ class CFR:
                 next_h = h
                 h, a = next_h.previous
 
-                π[h, hT] = σ[h.I][a] * π[next_h, hT]
+                π[h, hT] = σ[h.I.id][a] * π[next_h, hT]
 
                 u2[h.I] += π_[h.player, h] * π[h, hT] * self.G.u(hT, h.I.player)
                 u2[h.I, a] += π_[h.player, h] * π[next_h, hT] * self.G.u(hT, h.I.player)
@@ -89,8 +89,9 @@ class CFR:
         if not hasattr(self, 'S'):
             self.S = {}
             for I in self.G.uIs:
+                self.S[I] = {}
                 for a in I.available_actions:
-                    self.S[I, a] = 0
+                    self.S[I][a] = 0
 
         # R[I][a] gives R_i^{T,+}(I, a) where i = I.player and T = self.T.
         R = {}
@@ -98,13 +99,13 @@ class CFR:
         for I in self.G.uIs:
             R[I] = {}
             for a in I.available_actions:
-                self.S[I, a] += u2[I, a] - u2[I]
-                R[I][a] = 1/self.T * max(self.S[I, a], 0)
+                self.S[I][a] += u2[I, a] - u2[I]
+                R[I][a] = 1/self.T * max(self.S[I][a], 0)
 
         return R
 
     def _R_to_σ(self, R):
-        # σ[I][a] gives σ_i(I)(a) where i = I.player.
+        # σ[I.id][a] gives σ_i(I)(a) where i = I.player.
         σ = {}
 
         for I in self.G.uIs:
@@ -116,30 +117,30 @@ class CFR:
                 actions = r.keys()
                 l = len(actions)
                 d = {a: 1/l for a in actions}
-            σ[I] = d
+            σ[I.id] = d
 
         return σ
 
-    def _uniform_policy(self):
+    def _uniform_policies(self):
         σ = {}
 
         for I in self.G.uIs:
             actions = I.available_actions
             l = len(actions)
-            σ[I] = {a: 1/l for a in actions}
+            σ[I.id] = {a: 1/l for a in actions}
 
         return σ
 
-    def _hot_policy(self):
+    def _hot_policies(self):
         σ = {}
 
         for I in self.G.uIs:
             actions = I.available_actions
             hot_a = np.random.choice(actions)
-            σ[I] = {a: (1 if a == hot_a else 0) for a in actions}
+            σ[I.id] = {a: (1 if a == hot_a else 0) for a in actions}
 
         return σ
 
-    def update_policy(self):
+    def update_policies(self):
         self.T += 1
         self.σ = self._R_to_σ(self._u2_to_R(self._σ_to_u2(self.σ)))
