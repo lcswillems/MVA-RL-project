@@ -1,6 +1,6 @@
 from .generic import History, InformationSet
 
-class RPSHistory(History):
+class NFGHistory(History):
     def __init__(self, h=None, a=None):
         self._player = 0 if h == None else h.player + 1
 
@@ -12,9 +12,9 @@ class RPSHistory(History):
 
     @property
     def _information_set_class(self):
-        return RPSInformationSet
+        return NFGInformationSet
 
-class RPSInformationSet(InformationSet):
+class NFGInformationSet(InformationSet):
     def __init__(self, h):
         super().__init__(h)
 
@@ -36,16 +36,19 @@ class RPSInformationSet(InformationSet):
     def terminal(self):
         return self.id == 2
 
-class RockPaperScissors:
+class NormalFormGame:
+    _u0_matrix = [
+        [0, -1, 5],
+        [1, 0, -1],
+        [-1, 1, 0]
+    ]
+    π0 = [1/7, 11/21, 1/3]
+    π1 = [1/3, 11/21, 1/7]
+
     def __init__(self):
         self.nb_players = 2
-        self.init_h = RPSHistory()
-        self._u_matrix = [
-            [0, -1, 1],
-            [1, 0, -1],
-            [-1, 1, 0]
-        ]
+        self.init_h = NFGHistory()
 
     def u(self, h, player):
-        u1 = self._u_matrix[h.sequence[0]][h.sequence[1]]
-        return [u1, -u1][player]
+        u0 = self._u0_matrix[h.sequence[0]][h.sequence[1]]
+        return [u0, -u0][player]

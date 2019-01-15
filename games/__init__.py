@@ -1,2 +1,2 @@
 from .ttt import TicTacToe
-from .rps import RockPaperScissors
+from .nfg import NormalFormGame

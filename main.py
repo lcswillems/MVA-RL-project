@@ -6,16 +6,16 @@ import numpy as np
 import os
 
 from algos import CFR, Exp3P
-from games import RockPaperScissors, TicTacToe
-from utils import compute_normalized_entropy, compute_RPS_expected_gains, compute_RPS_players_utility
+from games import NormalFormGame, TicTacToe
+from utils import compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
-                    help='game: RPS or TTT')
+                    help='game: NFG or TTT')
 parser.add_argument('--algo', required=True,
                     help='algorithm: Exp3P or CFR')
-parser.add_argument('--iter', type=int, default='1000',
-                    help='number of policy updates (default: 1000)')
+parser.add_argument('--iter', type=int, default='10000',
+                    help='number of policy updates (default: 10000)')
 parser.add_argument('--eta', type=float, default=0,
                     help='η parameter for Exp3P')
 parser.add_argument('--gamma', type=float, default=0,
@@ -26,7 +26,7 @@ parser.add_argument('--nb-seeds', type=int, default=5,
                     help='number of seeds to average the results on (default: 5)')
 args = parser.parse_args()
 
-assert args.game in ['RPS', 'TTT']
+assert args.game in ['NFG', 'TTT']
 assert args.algo in ['Exp3P', 'CFR']
 
 if args.algo == 'Exp3P':
@@ -37,13 +37,15 @@ writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iter, hyp
 
 iters = np.arange(1, args.iter+1)
 
-if args.game == 'RPS':
-    game = RockPaperScissors()
+if args.game == 'NFG':
+    game = NormalFormGame()
 
     if args.algo == 'Exp3P':
+        actions = game.init_h.I.available_actions
+
         # For plots
-        N_entropiess_0 = []
-        N_entropiess_1 = []
+        N_KLss_0 = []
+        N_KLss_1 = []
         E_gainss_0 = []
         E_gainss_1 = []
         regretss_0 = []
@@ -52,19 +54,18 @@ if args.game == 'RPS':
         for seed in tqdm(range(args.nb_seeds)):
             np.random.seed(seed)
 
-            actions = game.init_h.I.available_actions
-            p0 = Exp3P(actions, args.eta, args.gamma, args.beta, init_weights="hot")
-            p1 = Exp3P(actions, args.eta, args.gamma, args.beta, init_weights="hot")
+            p0 = Exp3P(actions, args.eta, args.gamma, args.beta)
+            p1 = Exp3P(actions, args.eta, args.gamma, args.beta)
 
             # For plots
-            N_entropies_0 = []
-            N_entropies_1 = []
+            N_KLs_0 = []
+            N_KLs_1 = []
             E_gains_0 = []
             E_gains_1 = []
             regrets_0 = []
             regrets_1 = []
-            S0 = {a: 0 for a in range(3)}
-            S1 = {a: 0 for a in range(3)}
+            S0 = {a: 0 for a in actions}
+            S1 = {a: 0 for a in actions}
 
             for i in tqdm(iters):
                 a0 = p0.play()
@@ -77,24 +78,24 @@ if args.game == 'RPS':
                 # For plots
                 π0 = p0.π
                 π1 = p1.π
-                E_gain_0, E_gain_1 = compute_RPS_expected_gains(π0, π1)
+                E_gain_0, E_gain_1 = compute_NFG_expected_gains(π0, π1)
                 E_gains_0.append(E_gain_0)
                 E_gains_1.append(E_gain_1)
-                N_entropy_0 = compute_normalized_entropy(π0)
-                N_entropy_1 = compute_normalized_entropy(π1)
-                N_entropies_0.append(N_entropy_0)
-                N_entropies_1.append(N_entropy_1)
-                u0, u1 = compute_RPS_players_utility(a0, a1)
-                S0 = {a: S0[a] + u0[a] - u0[a0] for a in range(3)}
-                S1 = {a: S1[a] + u1[a] - u1[a1] for a in range(3)}
-                regret_0 = 1/i * max([S0[a] for a in range(3)])
-                regret_1 = 1/i * max([S1[a] for a in range(3)])
+                KL_0 = compute_NFG_KL(0, π0)
+                KL_1 = compute_NFG_KL(1, π1)
+                N_KLs_0.append(KL_0)
+                N_KLs_1.append(KL_1)
+                u0, u1 = compute_NFG_players_utility(a0, a1)
+                S0 = {a: S0[a] + u0[a] - u0[a0] for a in actions}
+                S1 = {a: S1[a] + u1[a] - u1[a1] for a in actions}
+                regret_0 = 1/i * max([S0[a] for a in actions])
+                regret_1 = 1/i * max([S1[a] for a in actions])
                 regrets_0.append(regret_0)
                 regrets_1.append(regret_1)
 
             # For plots
-            N_entropiess_0.append(N_entropies_0)
-            N_entropiess_1.append(N_entropies_1)
+            N_KLss_0.append(N_KLs_0)
+            N_KLss_1.append(N_KLs_1)
             E_gainss_0.append(E_gains_0)
             E_gainss_1.append(E_gains_1)
             regretss_0.append(regrets_0)
@@ -102,11 +103,11 @@ if args.game == 'RPS':
 
         # For plots
         os.makedirs(writer_path, exist_ok=True)
-        plt.plot(iters, np.mean(N_entropiess_0, axis=0))
-        plt.savefig(writer_path + "/N_entropy_0")
+        plt.plot(iters, np.mean(N_KLss_0, axis=0))
+        plt.savefig(writer_path + "/KL_0")
         plt.clf()
-        plt.plot(iters, np.mean(N_entropiess_1, axis=0))
-        plt.savefig(writer_path + "/N_entropy_1")
+        plt.plot(iters, np.mean(N_KLss_1, axis=0))
+        plt.savefig(writer_path + "/KL_1")
         plt.clf()
         plt.plot(iters, np.mean(E_gainss_0, axis=0))
         plt.savefig(writer_path + "/E_gain_0")
