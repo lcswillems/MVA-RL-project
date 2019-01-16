@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
@@ -7,14 +8,14 @@ import os
 
 from algos import CFR, Exp3P
 from games import NormalFormGame, TicTacToe
-from utils import compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility
+from utils import compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility, smooth
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
                     help='game: NFG or TTT')
 parser.add_argument('--algo', required=True,
                     help='algorithm: Exp3P or CFR')
-parser.add_argument('--iter', type=int, default='10000',
+parser.add_argument('--iters', type=int, default='10000',
                     help='number of policy updates (default: 10000)')
 parser.add_argument('--eta', type=float, default=0,
                     help='η parameter for Exp3P')
@@ -33,9 +34,13 @@ if args.algo == 'Exp3P':
     hyper_params = 'η{}_γ{}_β{}'.format(args.eta, args.gamma, args.beta)
 elif args.algo == 'CFR':
     hyper_params = ''
-writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iter, hyper_params)
+writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iters, hyper_params)
 
-iters = np.arange(1, args.iter+1)
+# For plots
+matplotlib.rcParams.update({'font.size': 8})
+os.makedirs(writer_path, exist_ok=True)
+
+iters = np.arange(1, args.iters+1)
 
 if args.game == 'NFG':
     game = NormalFormGame()
@@ -102,32 +107,88 @@ if args.game == 'NFG':
             regretss_1.append(regrets_1)
 
         # For plots
-        os.makedirs(writer_path, exist_ok=True)
-        plt.plot(iters, np.mean(N_KLss_0, axis=0))
-        plt.savefig(writer_path + "/KL_0")
-        plt.clf()
-        plt.plot(iters, np.mean(N_KLss_1, axis=0))
-        plt.savefig(writer_path + "/KL_1")
-        plt.clf()
-        plt.plot(iters, np.mean(E_gainss_0, axis=0))
-        plt.savefig(writer_path + "/E_gain_0")
-        plt.clf()
-        plt.plot(iters, np.mean(E_gainss_1, axis=0))
-        plt.savefig(writer_path + "/E_gain_1")
-        plt.clf()
-        plt.plot(iters, np.mean(regretss_0, axis=0))
-        plt.savefig(writer_path + "/regret_0")
-        plt.clf()
-        plt.plot(iters, np.mean(regretss_1, axis=0))
-        plt.savefig(writer_path + "/regret_1")
-        plt.clf()
+        plt.subplot(3, 2, 1)
+        plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
+        plt.ylim(0, .5)
+        plt.title("KL with NE 1")
+        plt.subplot(3, 2, 2)
+        plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
+        plt.ylim(0, .5)
+        plt.title("KL with NE 2")
+        plt.subplot(3, 2, 3)
+        plt.plot(iters, smooth(np.mean(E_gainss_0, axis=0)))
+        plt.axhline(y=NormalFormGame.v0, color='r')
+        plt.title("Expected gain & value 1")
+        plt.subplot(3, 2, 4)
+        plt.plot(iters, smooth(np.mean(E_gainss_1, axis=0)))
+        plt.axhline(y=NormalFormGame.v1, color='r')
+        plt.title("Expected gain & value 2")
+        plt.subplot(3, 2, 5)
+        plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
+        plt.ylim(0, 1)
+        plt.title("Regret 1")
+        plt.subplot(3, 2, 6)
+        plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
+        plt.ylim(0, 1)
+        plt.title("Regret 2")
+        plt.tight_layout()
+        plt.savefig(writer_path + "/plots")
 
     elif args.algo == 'CFR':
-        cfr = CFR(game, init_policies="hot")
+        # For plots
+        N_KLss_0 = []
+        N_KLss_1 = []
+        regretss_0 = []
+        regretss_1 = []
 
-        for i in tqdm(iters):
-            cfr.update_policies()
+        for seed in tqdm(range(args.nb_seeds)):
+            np.random.seed(seed)
+
+            cfr = CFR(game, init_policies="hot")
 
             # For plots
-            π0 = cfr.σ[0]
-            π1 = cfr.σ[1]
+            N_KLs_0 = []
+            N_KLs_1 = []
+            regrets_0 = []
+            regrets_1 = []
+
+            for i in tqdm(iters):
+                cfr.update_policies()
+
+                # For plots
+                π0 = cfr.σ[0]
+                π1 = cfr.σ[1]
+                KL_0 = compute_NFG_KL(0, π0)
+                KL_1 = compute_NFG_KL(1, π1)
+                N_KLs_0.append(KL_0)
+                N_KLs_1.append(KL_1)
+                regret_0 = max(cfr.R[0].values())
+                regret_1 = max(cfr.R[1].values())
+                regrets_0.append(regret_0)
+                regrets_1.append(regret_1)
+
+            # For plots
+            N_KLss_0.append(N_KLs_0)
+            N_KLss_1.append(N_KLs_1)
+            regretss_0.append(regrets_0)
+            regretss_1.append(regrets_1)
+
+        # For plots
+        plt.subplot(2, 2, 1)
+        plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
+        plt.ylim(0, 1)
+        plt.title("KL with NE 1")
+        plt.subplot(2, 2, 2)
+        plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
+        plt.ylim(0, 1)
+        plt.title("KL with NE 2")
+        plt.subplot(2, 2, 3)
+        plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
+        plt.ylim(0, .8)
+        plt.title("Regret 1")
+        plt.subplot(2, 2, 4)
+        plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
+        plt.ylim(0, .8)
+        plt.title("Regret 2")
+        plt.tight_layout()
+        plt.savefig(writer_path + "/plots")

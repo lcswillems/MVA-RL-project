@@ -43,7 +43,9 @@ class NormalFormGame:
         [-1, 1, 0]
     ]
     π0 = [1/7, 11/21, 1/3]
+    v0 = 4/21
     π1 = [1/3, 11/21, 1/7]
+    v1 = -4/21
 
     def __init__(self):
         self.nb_players = 2

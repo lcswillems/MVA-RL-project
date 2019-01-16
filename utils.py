@@ -1,6 +1,11 @@
 import scipy.stats as stats
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter1d
+
 from games import NormalFormGame
+
+def smooth(data, σ=5):
+    return gaussian_filter1d(data, σ)
 
 def compute_NFG_KL(player, π):
     π = list(π.values())

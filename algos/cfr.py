@@ -89,18 +89,18 @@ class CFR:
         if not hasattr(self, 'S'):
             self.S = {}
             for I in self.G.uIs:
-                self.S[I] = {}
+                self.S[I.id] = {}
                 for a in I.available_actions:
-                    self.S[I][a] = 0
+                    self.S[I.id][a] = 0
 
-        # R[I][a] gives R_i^{T,+}(I, a) where i = I.player and T = self.T.
+        # R[I.id][a] gives R_i^{T,+}(I, a) where i = I.player and T = self.T.
         R = {}
 
         for I in self.G.uIs:
-            R[I] = {}
+            R[I.id] = {}
             for a in I.available_actions:
-                self.S[I][a] += u2[I, a] - u2[I]
-                R[I][a] = 1/self.T * max(self.S[I][a], 0)
+                self.S[I.id][a] += u2[I, a] - u2[I]
+                R[I.id][a] = 1/self.T * max(self.S[I.id][a], 0)
 
         return R
 
@@ -109,7 +109,7 @@ class CFR:
         σ = {}
 
         for I in self.G.uIs:
-            r = R[I]
+            r = R[I.id]
             s = sum(r.values())
             if s > 0:
                 d = {a: r[a]/s for a in r.keys()}
@@ -143,4 +143,6 @@ class CFR:
 
     def update_policies(self):
         self.T += 1
-        self.σ = self._R_to_σ(self._u2_to_R(self._σ_to_u2(self.σ)))
+        self.u2 = self._σ_to_u2(self.σ)
+        self.R = self._u2_to_R(self.u2)
+        self.σ = self._R_to_σ(self.R)
