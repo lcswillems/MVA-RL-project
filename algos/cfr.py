@@ -6,17 +6,14 @@ import numpy as np
 class CFR:
     """CFR algorithm."""
 
-    def __init__(self, G, init_policies="uniform"):
+    def __init__(self, G):
         self.G = G
         self._cache_tree_game()
         self.T = 0
 
-        if init_policies == "uniform":
-            self.σ = self._uniform_policies()
-        elif init_policies == "hot":
-            self.σ = self._hot_policies()
-        else:
-            raise ValueError("`{}` is not a correct value for `init_policies`.".format(init_policies))
+        self._init_v()
+        self._init_Sp()
+        self._init_σ_aσ()
 
     def _cache_tree_game(self):
         print("Caching game tree...")
@@ -37,24 +34,50 @@ class CFR:
 
         print("Tree cached.")
 
-    def _σ_to_u2(self, σ):
+    def _init_v(self):
+        # v[I.id] gives u'_i(σ, I) where i = I.player.
+        # v[I.id, a] gives u'_i(σ|I->a, I) where i = I.player.
+        self.v = {}
+        for I in self.G.uIs:
+            self.v[I.id] = 0
+            for a in I.available_actions:
+                self.v[I.id, a] = 0
+
+    def _init_Sp(self):
+        # S[I.id][a] gives T*R_i^{T}(I, a) where i = I.player and T = self.T.
+        self.S = {}
+        # Sp[I.id][a] gives T*R_i^{T+}(I, a) where i = I.player and T = self.T.
+        self.Sp = {}
+        for I in self.G.uIs:
+            self.S[I.id] = {a: 0 for a in I.available_actions}
+            self.Sp[I.id] = {a: 0 for a in I.available_actions}
+
+    def _init_σ_aσ(self):
+        # σ[I.id][a] gives σ_i(I)(a) where i = I.player.
+        self.σ = {}
+        self.sσ = {}
+        # σa[I.id][a] gives the average σ_i(I)(a) where i = I.player.
+        self.aσ = {}
+        for I in self.G.uIs:
+            l = len(I.available_actions)
+            self.σ[I.id] = {a: 1/l for a in I.available_actions}
+            self.sσ[I.id] = {a: 0 for a in I.available_actions}
+            self.aσ[I.id] = {a: 1/l for a in I.available_actions}
+
+    def update_policy(self):
+        self.T += 1
+        self._update_v()
+        self._update_Sp()
+        self._update_σ_aσ()
+
+    def _update_v(self):
+        self._init_v()
+
         # π_[i, h] gives π^σ_{-i}(h).
         π_ = {}
 
         # π[h, hT] gives π^σ(h, hT).
-        # π[h, hT, I.id, a] gives π^{σ'}(h, hT)
-        #       where σ' is a strategy profile identical to σ except that
-        #       player I.player always chooses action a when in information set I.
         π = {}
-
-        # u2[I.id] gives u'_i(σ, I) where i = I.player.
-        # u2[I.id, a] gives u'_i(σ|I->a, I) where i = I.player.
-        u2 = {}
-
-        for I in self.G.uIs:
-            u2[I.id] = 0
-            for a in I.available_actions:
-                u2[I.id, a] = 0
 
         h = self.G.init_h
         for i2 in range(self.G.nb_players):
@@ -67,7 +90,7 @@ class CFR:
                 next_h = h.next(a)
                 stack.append(next_h)
                 for i2 in range(self.G.nb_players):
-                    p = 1 if i == i2 else σ[h.I.id][a]
+                    p = 1 if i == i2 else self.σ[h.I.id][a]
                     π_[i2, next_h] = π_[i2, h] * p
 
         for hT in self.G.hTs:
@@ -78,71 +101,33 @@ class CFR:
                 next_h = h
                 h, a = next_h.previous
 
-                π[h, hT] = σ[h.I.id][a] * π[next_h, hT]
+                π[h, hT] = self.σ[h.I.id][a] * π[next_h, hT]
 
-                u2[h.I.id] += π_[h.player, h] * π[h, hT] * self.G.u(hT, h.I.player)
-                u2[h.I.id, a] += π_[h.player, h] * π[next_h, hT] * self.G.u(hT, h.I.player)
+                self.v[h.I.id] += π_[h.player, h] * π[h, hT] * self.G.u(hT, h.I.player)
+                self.v[h.I.id, a] += π_[h.player, h] * π[next_h, hT] * self.G.u(hT, h.I.player)
 
-        return u2
-
-    def _u2_to_R(self, u2):
-        if not hasattr(self, 'S'):
-            self.S = {}
-            for I in self.G.uIs:
-                self.S[I.id] = {}
-                for a in I.available_actions:
-                    self.S[I.id][a] = 0
-
-        # R[I.id][a] gives R_i^{T,+}(I, a) where i = I.player and T = self.T.
-        R = {}
-
+    def _update_Sp(self):
         for I in self.G.uIs:
-            R[I.id] = {}
             for a in I.available_actions:
-                self.S[I.id][a] += u2[I.id, a] - u2[I.id]
-                R[I.id][a] = max(self.S[I.id][a], 0)
+                self.S[I.id][a] += self.v[I.id, a] - self.v[I.id]
+                self.Sp[I.id][a] = max(self.S[I.id][a], 0)
 
-        return R
-
-    def _R_to_σ(self, R):
-        # σ[I.id][a] gives σ_i(I)(a) where i = I.player.
-        σ = {}
-
+    def _update_σ_aσ(self):
         for I in self.G.uIs:
-            r = R[I.id]
-            s = sum(r.values())
-            if s > 0:
-                d = {a: r[a]/s for a in r.keys()}
+            actions = I.available_actions
+
+            # Update σ
+            sp = self.Sp[I.id]
+            normalize = sum(sp.values())
+            if normalize > 0:
+                d = {a: sp[a]/normalize for a in actions}
             else:
-                actions = r.keys()
                 l = len(actions)
                 d = {a: 1/l for a in actions}
-            σ[I.id] = d
+            self.σ[I.id] = d
 
-        return σ
-
-    def _uniform_policies(self):
-        σ = {}
-
-        for I in self.G.uIs:
-            actions = I.available_actions
-            l = len(actions)
-            σ[I.id] = {a: 1/l for a in actions}
-
-        return σ
-
-    def _hot_policies(self):
-        σ = {}
-
-        for I in self.G.uIs:
-            actions = I.available_actions
-            hot_a = np.random.choice(actions)
-            σ[I.id] = {a: (1 if a == hot_a else 0) for a in actions}
-
-        return σ
-
-    def update_policies(self):
-        self.T += 1
-        self.u2 = self._σ_to_u2(self.σ)
-        self.R = self._u2_to_R(self.u2)
-        self.σ = self._R_to_σ(self.R)
+            # Update sσ & aσ
+            normalize = self.T*(self.T+1)/2
+            for a in actions:
+                self.sσ[I.id][a] += self.T*self.σ[I.id][a]
+                self.aσ[I.id][a] = self.sσ[I.id][a]/normalize
