@@ -100,7 +100,7 @@ class CFR:
             R[I.id] = {}
             for a in I.available_actions:
                 self.S[I.id][a] += u2[I.id, a] - u2[I.id]
-                R[I.id][a] = 1/self.T * max(self.S[I.id][a], 0)
+                R[I.id][a] = max(self.S[I.id][a], 0)
 
         return R
 
