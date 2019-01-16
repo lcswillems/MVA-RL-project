@@ -144,7 +144,7 @@ if args.game == 'NFG':
         for seed in tqdm(range(args.nb_seeds)):
             np.random.seed(seed)
 
-            cfr = CFR(game, init_policies="hot")
+            cfr = CFR(game)
 
             # For plots
             N_KLs_0 = []
@@ -153,17 +153,17 @@ if args.game == 'NFG':
             regrets_1 = []
 
             for i in tqdm(iters):
-                cfr.update_policies()
+                cfr.update_policy()
 
                 # For plots
-                π0 = cfr.σ[0]
-                π1 = cfr.σ[1]
+                π0 = cfr.aσ[0]
+                π1 = cfr.aσ[1]
                 KL_0 = compute_NFG_KL(0, π0)
                 KL_1 = compute_NFG_KL(1, π1)
                 N_KLs_0.append(KL_0)
                 N_KLs_1.append(KL_1)
-                regret_0 = max(cfr.R[0].values())
-                regret_1 = max(cfr.R[1].values())
+                regret_0 = 1/cfr.T*max(cfr.S[0].values())
+                regret_1 = 1/cfr.T*max(cfr.S[1].values())
                 regrets_0.append(regret_0)
                 regrets_1.append(regret_1)
 
@@ -176,19 +176,19 @@ if args.game == 'NFG':
         # For plots
         plt.subplot(2, 2, 1)
         plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
-        plt.ylim(0, 1)
+        plt.ylim(0, .5)
         plt.title("KL with NE 1")
         plt.subplot(2, 2, 2)
         plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
-        plt.ylim(0, 1)
+        plt.ylim(0, .5)
         plt.title("KL with NE 2")
         plt.subplot(2, 2, 3)
         plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
-        plt.ylim(0, .8)
+        plt.ylim(0, 1)
         plt.title("Regret 1")
         plt.subplot(2, 2, 4)
         plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
-        plt.ylim(0, .8)
+        plt.ylim(0, 1)
         plt.title("Regret 2")
         plt.tight_layout()
         plt.savefig(writer_path + "/plots")
