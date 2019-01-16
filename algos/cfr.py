@@ -42,19 +42,19 @@ class CFR:
         π_ = {}
 
         # π[h, hT] gives π^σ(h, hT).
-        # π[h, hT, I, a] gives π^{σ'}(h, hT)
+        # π[h, hT, I.id, a] gives π^{σ'}(h, hT)
         #       where σ' is a strategy profile identical to σ except that
         #       player I.player always chooses action a when in information set I.
         π = {}
 
-        # u2[I] gives u'_i(σ, I) where i = I.player.
-        # u2[I, a] gives u'_i(σ|I->a, I) where i = I.player.
+        # u2[I.id] gives u'_i(σ, I) where i = I.player.
+        # u2[I.id, a] gives u'_i(σ|I->a, I) where i = I.player.
         u2 = {}
 
         for I in self.G.uIs:
-            u2[I] = 0
+            u2[I.id] = 0
             for a in I.available_actions:
-                u2[I, a] = 0
+                u2[I.id, a] = 0
 
         h = self.G.init_h
         for i2 in range(self.G.nb_players):
@@ -80,8 +80,8 @@ class CFR:
 
                 π[h, hT] = σ[h.I.id][a] * π[next_h, hT]
 
-                u2[h.I] += π_[h.player, h] * π[h, hT] * self.G.u(hT, h.I.player)
-                u2[h.I, a] += π_[h.player, h] * π[next_h, hT] * self.G.u(hT, h.I.player)
+                u2[h.I.id] += π_[h.player, h] * π[h, hT] * self.G.u(hT, h.I.player)
+                u2[h.I.id, a] += π_[h.player, h] * π[next_h, hT] * self.G.u(hT, h.I.player)
 
         return u2
 
@@ -99,7 +99,7 @@ class CFR:
         for I in self.G.uIs:
             R[I.id] = {}
             for a in I.available_actions:
-                self.S[I.id][a] += u2[I, a] - u2[I]
+                self.S[I.id][a] += u2[I.id, a] - u2[I.id]
                 R[I.id][a] = 1/self.T * max(self.S[I.id][a], 0)
 
         return R
