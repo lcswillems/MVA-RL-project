@@ -4,7 +4,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
-import os
 
 from algos import CFR
 from games import mRPS, TTT
@@ -40,11 +39,9 @@ elif args.algo == 'Exp3P':
     hps = {'η': args.eta, 'γ': args.gamma, 'β': args.beta}
 elif args.algo in ['CFR', 'CFRp']:
     hps = {}
-writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iters, hps_to_fstr(hps))
 
 # For plots
 matplotlib.rcParams.update({'font.size': 8})
-os.makedirs(writer_path, exist_ok=True)
 
 iters = np.arange(1, args.iters+1)
 
@@ -135,6 +132,7 @@ if args.game == 'mRPS':
         regretss_1.append(regrets_1)
 
     # For plots
+    plot_path = 'storage/{}_{}_N{}_{}.png'.format(args.game, args.algo, args.iters, hps_to_fstr(hps))
     plt.suptitle("{} {}".format(args.algo, hps_to_tstr(hps)), size=12, weight='bold')
     plt.subplot(3, 2, 1)
     plot(plt, iters, N_KLss_0)
@@ -163,4 +161,4 @@ if args.game == 'mRPS':
     plt.ylim(0, 1)
     plt.title("Regret 2")
     plt.tight_layout(rect=[0, 0, 1, .95])
-    plt.savefig(writer_path + "/plots")
+    plt.savefig(plot_path)
