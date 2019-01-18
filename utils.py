@@ -5,6 +5,12 @@ from scipy.ndimage.filters import gaussian_filter1d
 from algos import EWF, Exp3, Exp3P, CFR
 from games import mRPS
 
+def hps_to_fstr(hps):
+    return '_'.join(['{}{}'.format(hp, v) for hp, v in hps.items()])
+
+def hps_to_tstr(hps):
+    return ' '.join(['{}={}'.format(hp, v) for hp, v in hps.items()])
+
 def load_MAB_algo(actions, args):
     if args.algo == 'EWF':
         return EWF(actions, args.eta)

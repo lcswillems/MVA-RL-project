@@ -8,7 +8,8 @@ import os
 
 from algos import CFR
 from games import mRPS, TTT
-from utils import load_MAB_algo, plot, compute_mRPS_KL, compute_mRPS_expected_gains, compute_mRPS_players_utility
+from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, plot, compute_mRPS_KL,\
+                  compute_mRPS_expected_gains, compute_mRPS_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
@@ -34,12 +35,12 @@ is_MAB_algo = args.algo in ['EWF', 'Exp3', 'Exp3P']
 is_CFR_algo = args.algo in ['CFR', 'CFRp']
 
 if args.algo in ['EWF', 'Exp3']:
-    hyper_params = 'η{}'.format(args.eta)
+    hps = {'η': args.eta}
 elif args.algo == 'Exp3P':
-    hyper_params = 'η{}_γ{}_β{}'.format(args.eta, args.gamma, args.beta)
-elif args.algo == 'CFR':
-    hyper_params = ''
-writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iters, hyper_params)
+    hps = {'η': args.eta, 'γ': args.gamma, 'β': args.beta}
+elif args.algo in ['CFR', 'CFRp']:
+    hps = {}
+writer_path = 'storage/{}_{}_N{}_{}'.format(args.game, args.algo, args.iters, hps_to_fstr(hps))
 
 # For plots
 matplotlib.rcParams.update({'font.size': 8})
@@ -134,6 +135,7 @@ if args.game == 'mRPS':
         regretss_1.append(regrets_1)
 
     # For plots
+    plt.suptitle("{} {}".format(args.algo, hps_to_tstr(hps)), size=12, weight='bold')
     plt.subplot(3, 2, 1)
     plot(plt, iters, N_KLss_0)
     plt.ylim(0, .5)
@@ -160,5 +162,5 @@ if args.game == 'mRPS':
     plot(plt, iters, regretss_1)
     plt.ylim(0, 1)
     plt.title("Regret 2")
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, .95])
     plt.savefig(writer_path + "/plots")
