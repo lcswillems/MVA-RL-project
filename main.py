@@ -7,12 +7,12 @@ import numpy as np
 import os
 
 from algos import CFR
-from games import NormalFormGame, TicTacToe
-from utils import load_MAB_algo, smooth, compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility
+from games import mRPS, TTT
+from utils import load_MAB_algo, smooth, compute_mRPS_KL, compute_mRPS_expected_gains, compute_mRPS_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
-                    help='game: NFG or TTT')
+                    help='game: mRPS or TTT')
 parser.add_argument('--algo', required=True,
                     help='algorithm: Exp3P or CFR')
 parser.add_argument('--iters', type=int, default='10000',
@@ -27,7 +27,7 @@ parser.add_argument('--nb-seeds', type=int, default=5,
                     help='number of seeds to average the results on (default: 5)')
 args = parser.parse_args()
 
-assert args.game in ['NFG', 'TTT']
+assert args.game in ['mRPS', 'TTT']
 assert args.algo in ['EWF', 'Exp3', 'Exp3P', 'CFR', 'CFRp']
 
 is_MAB_algo = args.algo in ['EWF', 'Exp3', 'Exp3P']
@@ -47,8 +47,8 @@ os.makedirs(writer_path, exist_ok=True)
 
 iters = np.arange(1, args.iters+1)
 
-if args.game == 'NFG':
-    game = NormalFormGame()
+if args.game == 'mRPS':
+    game = mRPS()
     actions = game.init_h.I.available_actions
 
     # For plots
@@ -106,15 +106,15 @@ if args.game == 'NFG':
                 π1 = algo.aσ[1]
 
             # For plots
-            E_gain_0, E_gain_1 = compute_NFG_expected_gains(π0, π1)
+            E_gain_0, E_gain_1 = compute_mRPS_expected_gains(π0, π1)
             E_gains_0.append(E_gain_0)
             E_gains_1.append(E_gain_1)
-            KL_0 = compute_NFG_KL(0, π0)
-            KL_1 = compute_NFG_KL(1, π1)
+            KL_0 = compute_mRPS_KL(0, π0)
+            KL_1 = compute_mRPS_KL(1, π1)
             N_KLs_0.append(KL_0)
             N_KLs_1.append(KL_1)
             if is_MAB_algo:
-                u0, u1 = compute_NFG_players_utility(a0, a1)
+                u0, u1 = compute_mRPS_players_utility(a0, a1)
                 S0 = {a: S0[a] + u0[a] - u0[a0] for a in actions}
                 S1 = {a: S1[a] + u1[a] - u1[a1] for a in actions}
                 regret_0 = 1/i * max([S0[a] for a in actions])
@@ -144,12 +144,12 @@ if args.game == 'NFG':
     plt.title("KL with NE 2")
     plt.subplot(3, 2, 3)
     plt.plot(iters, smooth(np.mean(E_gainss_0, axis=0)))
-    plt.axhline(y=NormalFormGame.v0, color='r')
+    plt.axhline(y=mRPS.v0, color='r')
     plt.ylim(.1, .6)
     plt.title("Expected gain & value 1")
     plt.subplot(3, 2, 4)
     plt.plot(iters, smooth(np.mean(E_gainss_1, axis=0)))
-    plt.axhline(y=NormalFormGame.v1, color='r')
+    plt.axhline(y=mRPS.v1, color='r')
     plt.ylim(-.6, -.1)
     plt.title("Expected gain & value 2")
     plt.subplot(3, 2, 5)

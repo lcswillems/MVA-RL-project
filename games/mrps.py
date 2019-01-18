@@ -2,7 +2,7 @@ import numpy as np
 
 from .generic import History, InformationSet
 
-class NFGHistory(History):
+class mRPSHistory(History):
     def __init__(self, h=None, a=None):
         self._player = 0 if h == None else h.player + 1
 
@@ -14,9 +14,9 @@ class NFGHistory(History):
 
     @property
     def _information_set_class(self):
-        return NFGInformationSet
+        return mRPSInformationSet
 
-class NFGInformationSet(InformationSet):
+class mRPSInformationSet(InformationSet):
     def __init__(self, h):
         super().__init__(h)
 
@@ -38,7 +38,9 @@ class NFGInformationSet(InformationSet):
     def terminal(self):
         return self.id == 2
 
-class NormalFormGame:
+class mRPS:
+    """Modified Rock Paper Scissors game."""
+
     _u0_matrix = np.array([
         [0, -1, 5],
         [1, 0, -1],
@@ -51,7 +53,7 @@ class NormalFormGame:
 
     def __init__(self):
         self.nb_players = 2
-        self.init_h = NFGHistory()
+        self.init_h = mRPSHistory()
 
     def u(self, h, player):
         u0 = self._u0_matrix[h.sequence[0]][h.sequence[1]]

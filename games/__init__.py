@@ -1,2 +1,2 @@
-from .ttt import TicTacToe
-from .nfg import NormalFormGame
+from .ttt import TTT
+from .mrps import mRPS

@@ -75,7 +75,9 @@ class TTTInformationSet(InformationSet):
             return self.grid[0][2]
         return None
 
-class TicTacToe:
+class TTT:
+    """Tic Tac Toe."""
+
     def __init__(self):
         self.nb_players = 2
         self.init_h = TTTHistory()
