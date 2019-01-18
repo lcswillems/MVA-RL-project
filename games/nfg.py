@@ -1,3 +1,5 @@
+import numpy as np
+
 from .generic import History, InformationSet
 
 class NFGHistory(History):
@@ -37,14 +39,14 @@ class NFGInformationSet(InformationSet):
         return self.id == 2
 
 class NormalFormGame:
-    _u0_matrix = [
+    _u0_matrix = np.array([
         [0, -1, 5],
         [1, 0, -1],
         [-1, 1, 0]
-    ]
-    π0 = [1/7, 11/21, 1/3]
+    ])
+    π0 = np.array([1/7, 11/21, 1/3])
     v0 = 4/21
-    π1 = [1/3, 11/21, 1/7]
+    π1 = np.array([1/3, 11/21, 1/7])
     v1 = -4/21
 
     def __init__(self):

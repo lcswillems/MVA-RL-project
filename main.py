@@ -6,9 +6,8 @@ from tqdm import tqdm
 import numpy as np
 import os
 
-from algos import CFR, Exp3P
 from games import NormalFormGame, TicTacToe
-from utils import compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility, smooth
+from utils import load_MAB_algo, smooth, compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
@@ -18,7 +17,7 @@ parser.add_argument('--algo', required=True,
 parser.add_argument('--iters', type=int, default='10000',
                     help='number of policy updates (default: 10000)')
 parser.add_argument('--eta', type=float, default=0,
-                    help='η parameter for Exp3P')
+                    help='η parameter for EWF, Exp3, Exp3P')
 parser.add_argument('--gamma', type=float, default=0,
                     help='γ parameter for Exp3P')
 parser.add_argument('--beta', type=float, default=0,
@@ -28,9 +27,11 @@ parser.add_argument('--nb-seeds', type=int, default=5,
 args = parser.parse_args()
 
 assert args.game in ['NFG', 'TTT']
-assert args.algo in ['Exp3P', 'CFR']
+assert args.algo in ['EWF', 'Exp3', 'Exp3P', 'CFR']
 
-if args.algo == 'Exp3P':
+if args.algo in ['EWF', 'Exp3']:
+    hyper_params = 'η{}'.format(args.eta)
+elif args.algo == 'Exp3P':
     hyper_params = 'η{}_γ{}_β{}'.format(args.eta, args.gamma, args.beta)
 elif args.algo == 'CFR':
     hyper_params = ''
@@ -45,7 +46,7 @@ iters = np.arange(1, args.iters+1)
 if args.game == 'NFG':
     game = NormalFormGame()
 
-    if args.algo == 'Exp3P':
+    if args.algo in ['EWF', 'Exp3', 'Exp3P']:
         actions = game.init_h.I.available_actions
 
         # For plots
@@ -59,8 +60,8 @@ if args.game == 'NFG':
         for seed in tqdm(range(args.nb_seeds)):
             np.random.seed(seed)
 
-            p0 = Exp3P(actions, args.eta, args.gamma, args.beta)
-            p1 = Exp3P(actions, args.eta, args.gamma, args.beta)
+            p0 = load_MAB_algo(actions, args)
+            p1 = load_MAB_algo(actions, args)
 
             # For plots
             N_KLs_0 = []
@@ -76,9 +77,16 @@ if args.game == 'NFG':
                 a0 = p0.play()
                 a1 = p1.play()
                 h = game.init_h.next(a0).next(a1)
-                u0 = game.u(h, 0)
-                p0.analyze_feedback(u0)
-                p1.analyze_feedback(-u0)
+                if args.algo in ['Exp3', 'Exp3P']:
+                    u0_a = game.u(h, 0)
+                    u1_a = -u0_a
+                    p0.update_policy(u0_a)
+                    p1.update_policy(u1_a)
+                elif args.algo == 'EWF':
+                    u0 = game._u0_matrix[:, a1]
+                    u1 = -game._u0_matrix[a0]
+                    p0.update_policy(u0)
+                    p1.update_policy(u1)
 
                 # For plots
                 π0 = p0.π

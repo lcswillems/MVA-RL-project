@@ -2,7 +2,16 @@ import scipy.stats as stats
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 
+from algos import EWF, Exp3, Exp3P, CFR
 from games import NormalFormGame
+
+def load_MAB_algo(actions, args):
+    if args.algo == 'EWF':
+        return EWF(actions, args.eta)
+    elif args.algo == 'Exp3':
+        return Exp3(actions, args.eta)
+    elif args.algo == 'Exp3P':
+        return Exp3P(actions, args.eta, args.gamma, args.beta)
 
 def smooth(data, σ=5):
     return gaussian_filter1d(data, σ)
