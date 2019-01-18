@@ -25,3 +25,23 @@ python main.py --game mRPS --algo CFR --iters 500
 ```
 python main.py --game mRPS --algo CFRp --iters 500
 ```
+
+# Comparing CFR, CFR+ on bNFG
+
+```
+python main.py --game bNFG --algo CFR --iters 2000
+```
+
+```
+python main.py --game bNFG --algo CFRp --iters 2000
+```
+
+# Comparing CFR, CFR+ on TTT
+
+```
+python main.py --game TTT --algo CFR --iters 10
+```
+
+```
+python main.py --game TTT --algo CFRp --iters 10
+```
