@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
+import scipy.stats as stats
 
 from algos import EWF, Exp3, Exp3P, CFR, CFRp
 
@@ -33,7 +34,7 @@ def plot(plt, iters, valuess):
 def compute_dist_dist(game, player, σi):
     σi = np.array(list(σi.values()))
     ne_σi = getattr(game, 'σ{}'.format(player))
-    return np.linalg.norm(σi - ne_σi, ord=1)
+    return stats.entropy(ne_σi, σi)
 
 def compute_players_utility(game, a0, a1):
     u0 = {}
