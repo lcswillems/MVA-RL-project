@@ -6,6 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 
+from algos import CFR
 from games import NormalFormGame, TicTacToe
 from utils import load_MAB_algo, smooth, compute_NFG_KL, compute_NFG_expected_gains, compute_NFG_players_utility
 
@@ -27,7 +28,10 @@ parser.add_argument('--nb-seeds', type=int, default=5,
 args = parser.parse_args()
 
 assert args.game in ['NFG', 'TTT']
-assert args.algo in ['EWF', 'Exp3', 'Exp3P', 'CFR']
+assert args.algo in ['EWF', 'Exp3', 'Exp3P', 'CFR', 'CFRp']
+
+is_MAB_algo = args.algo in ['EWF', 'Exp3', 'Exp3P']
+is_CFR_algo = args.algo in ['CFR', 'CFRp']
 
 if args.algo in ['EWF', 'Exp3']:
     hyper_params = 'η{}'.format(args.eta)
@@ -45,158 +49,116 @@ iters = np.arange(1, args.iters+1)
 
 if args.game == 'NFG':
     game = NormalFormGame()
+    actions = game.init_h.I.available_actions
 
-    if args.algo in ['EWF', 'Exp3', 'Exp3P']:
-        actions = game.init_h.I.available_actions
+    # For plots
+    N_KLss_0 = []
+    N_KLss_1 = []
+    E_gainss_0 = []
+    E_gainss_1 = []
+    regretss_0 = []
+    regretss_1 = []
+
+    for seed in tqdm(range(args.nb_seeds)):
+        np.random.seed(seed)
+
+        if is_MAB_algo:
+            algo0 = load_MAB_algo(actions, args)
+            algo1 = load_MAB_algo(actions, args)
+        elif is_CFR_algo:
+            algo = CFR(game)
 
         # For plots
-        N_KLss_0 = []
-        N_KLss_1 = []
-        E_gainss_0 = []
-        E_gainss_1 = []
-        regretss_0 = []
-        regretss_1 = []
-
-        for seed in tqdm(range(args.nb_seeds)):
-            np.random.seed(seed)
-
-            p0 = load_MAB_algo(actions, args)
-            p1 = load_MAB_algo(actions, args)
-
-            # For plots
-            N_KLs_0 = []
-            N_KLs_1 = []
-            E_gains_0 = []
-            E_gains_1 = []
-            regrets_0 = []
-            regrets_1 = []
+        N_KLs_0 = []
+        N_KLs_1 = []
+        E_gains_0 = []
+        E_gains_1 = []
+        if is_MAB_algo:
             S0 = {a: 0 for a in actions}
             S1 = {a: 0 for a in actions}
+        regrets_0 = []
+        regrets_1 = []
 
-            for i in tqdm(iters):
-                a0 = p0.play()
-                a1 = p1.play()
+        for i in tqdm(iters):
+            if is_MAB_algo:
+                a0 = algo0.play()
+                a1 = algo1.play()
                 h = game.init_h.next(a0).next(a1)
                 if args.algo in ['Exp3', 'Exp3P']:
                     u0_a = game.u(h, 0)
                     u1_a = -u0_a
-                    p0.update_policy(u0_a)
-                    p1.update_policy(u1_a)
+                    algo0.update_policy(u0_a)
+                    algo1.update_policy(u1_a)
                 elif args.algo == 'EWF':
                     u0 = game._u0_matrix[:, a1]
                     u1 = -game._u0_matrix[a0]
-                    p0.update_policy(u0)
-                    p1.update_policy(u1)
+                    algo0.update_policy(u0)
+                    algo1.update_policy(u1)
 
                 # For plots
-                π0 = p0.aπ
-                π1 = p1.aπ
-                E_gain_0, E_gain_1 = compute_NFG_expected_gains(π0, π1)
-                E_gains_0.append(E_gain_0)
-                E_gains_1.append(E_gain_1)
-                KL_0 = compute_NFG_KL(0, π0)
-                KL_1 = compute_NFG_KL(1, π1)
-                N_KLs_0.append(KL_0)
-                N_KLs_1.append(KL_1)
+                π0 = algo0.aπ
+                π1 = algo1.aπ
+            elif is_CFR_algo:
+                algo.update_policy()
+
+                # For plots
+                π0 = algo.aσ[0]
+                π1 = algo.aσ[1]
+
+            # For plots
+            E_gain_0, E_gain_1 = compute_NFG_expected_gains(π0, π1)
+            E_gains_0.append(E_gain_0)
+            E_gains_1.append(E_gain_1)
+            KL_0 = compute_NFG_KL(0, π0)
+            KL_1 = compute_NFG_KL(1, π1)
+            N_KLs_0.append(KL_0)
+            N_KLs_1.append(KL_1)
+            if is_MAB_algo:
                 u0, u1 = compute_NFG_players_utility(a0, a1)
                 S0 = {a: S0[a] + u0[a] - u0[a0] for a in actions}
                 S1 = {a: S1[a] + u1[a] - u1[a1] for a in actions}
                 regret_0 = 1/i * max([S0[a] for a in actions])
                 regret_1 = 1/i * max([S1[a] for a in actions])
-                regrets_0.append(regret_0)
-                regrets_1.append(regret_1)
-
-            # For plots
-            N_KLss_0.append(N_KLs_0)
-            N_KLss_1.append(N_KLs_1)
-            E_gainss_0.append(E_gains_0)
-            E_gainss_1.append(E_gains_1)
-            regretss_0.append(regrets_0)
-            regretss_1.append(regrets_1)
+            elif is_CFR_algo:
+                regret_0 = 1/algo.T*max(algo.S[0].values())
+                regret_1 = 1/algo.T*max(algo.S[1].values())
+            regrets_0.append(regret_0)
+            regrets_1.append(regret_1)
 
         # For plots
-        plt.subplot(3, 2, 1)
-        plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
-        plt.ylim(0, .5)
-        plt.title("KL with NE 1")
-        plt.subplot(3, 2, 2)
-        plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
-        plt.ylim(0, .5)
-        plt.title("KL with NE 2")
-        plt.subplot(3, 2, 3)
-        plt.plot(iters, smooth(np.mean(E_gainss_0, axis=0)))
-        plt.axhline(y=NormalFormGame.v0, color='r')
-        plt.title("Expected gain & value 1")
-        plt.subplot(3, 2, 4)
-        plt.plot(iters, smooth(np.mean(E_gainss_1, axis=0)))
-        plt.axhline(y=NormalFormGame.v1, color='r')
-        plt.title("Expected gain & value 2")
-        plt.subplot(3, 2, 5)
-        plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
-        plt.ylim(0, 1)
-        plt.title("Regret 1")
-        plt.subplot(3, 2, 6)
-        plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
-        plt.ylim(0, 1)
-        plt.title("Regret 2")
-        plt.tight_layout()
-        plt.savefig(writer_path + "/plots")
+        N_KLss_0.append(N_KLs_0)
+        N_KLss_1.append(N_KLs_1)
+        E_gainss_0.append(E_gains_0)
+        E_gainss_1.append(E_gains_1)
+        regretss_0.append(regrets_0)
+        regretss_1.append(regrets_1)
 
-    elif args.algo == 'CFR':
-        # For plots
-        N_KLss_0 = []
-        N_KLss_1 = []
-        regretss_0 = []
-        regretss_1 = []
-
-        for seed in tqdm(range(args.nb_seeds)):
-            np.random.seed(seed)
-
-            cfr = CFR(game)
-
-            # For plots
-            N_KLs_0 = []
-            N_KLs_1 = []
-            regrets_0 = []
-            regrets_1 = []
-
-            for i in tqdm(iters):
-                cfr.update_policy()
-
-                # For plots
-                π0 = cfr.aσ[0]
-                π1 = cfr.aσ[1]
-                KL_0 = compute_NFG_KL(0, π0)
-                KL_1 = compute_NFG_KL(1, π1)
-                N_KLs_0.append(KL_0)
-                N_KLs_1.append(KL_1)
-                regret_0 = 1/cfr.T*max(cfr.S[0].values())
-                regret_1 = 1/cfr.T*max(cfr.S[1].values())
-                regrets_0.append(regret_0)
-                regrets_1.append(regret_1)
-
-            # For plots
-            N_KLss_0.append(N_KLs_0)
-            N_KLss_1.append(N_KLs_1)
-            regretss_0.append(regrets_0)
-            regretss_1.append(regrets_1)
-
-        # For plots
-        plt.subplot(2, 2, 1)
-        plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
-        plt.ylim(0, .5)
-        plt.title("KL with NE 1")
-        plt.subplot(2, 2, 2)
-        plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
-        plt.ylim(0, .5)
-        plt.title("KL with NE 2")
-        plt.subplot(2, 2, 3)
-        plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
-        plt.ylim(0, 1)
-        plt.title("Regret 1")
-        plt.subplot(2, 2, 4)
-        plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
-        plt.ylim(0, 1)
-        plt.title("Regret 2")
-        plt.tight_layout()
-        plt.savefig(writer_path + "/plots")
+    # For plots
+    plt.subplot(3, 2, 1)
+    plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
+    plt.ylim(0, .5)
+    plt.title("KL with NE 1")
+    plt.subplot(3, 2, 2)
+    plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
+    plt.ylim(0, .5)
+    plt.title("KL with NE 2")
+    plt.subplot(3, 2, 3)
+    plt.plot(iters, smooth(np.mean(E_gainss_0, axis=0)))
+    plt.axhline(y=NormalFormGame.v0, color='r')
+    plt.ylim(.1, .6)
+    plt.title("Expected gain & value 1")
+    plt.subplot(3, 2, 4)
+    plt.plot(iters, smooth(np.mean(E_gainss_1, axis=0)))
+    plt.axhline(y=NormalFormGame.v1, color='r')
+    plt.ylim(-.6, -.1)
+    plt.title("Expected gain & value 2")
+    plt.subplot(3, 2, 5)
+    plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
+    plt.ylim(0, 1)
+    plt.title("Regret 1")
+    plt.subplot(3, 2, 6)
+    plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
+    plt.ylim(0, 1)
+    plt.title("Regret 2")
+    plt.tight_layout()
+    plt.savefig(writer_path + "/plots")
