@@ -96,21 +96,21 @@ if args.game == 'mRPS':
                     algo1.update_policy(u1)
 
                 # For plots
-                π0 = algo0.aπ
-                π1 = algo1.aπ
+                σ0 = algo0.aσi
+                σ1 = algo1.aσi
             elif is_CFR_algo:
                 algo.update_policy()
 
                 # For plots
-                π0 = algo.aσ[0]
-                π1 = algo.aσ[1]
+                σ0 = algo.aσ[0]
+                σ1 = algo.aσ[1]
 
             # For plots
-            E_gain_0, E_gain_1 = compute_mRPS_expected_gains(π0, π1)
+            E_gain_0, E_gain_1 = compute_mRPS_expected_gains(σ0, σ1)
             E_gains_0.append(E_gain_0)
             E_gains_1.append(E_gain_1)
-            KL_0 = compute_mRPS_KL(0, π0)
-            KL_1 = compute_mRPS_KL(1, π1)
+            KL_0 = compute_mRPS_KL(0, σ0)
+            KL_1 = compute_mRPS_KL(1, σ1)
             N_KLs_0.append(KL_0)
             N_KLs_1.append(KL_1)
             if is_MAB_algo:

@@ -20,10 +20,10 @@ def plot(plt, iters, valuess, σ=5):
     plt.plot(iters, median)
     plt.fill_between(iters, m, M, alpha=.3)
 
-def compute_mRPS_KL(player, π):
-    π = list(π.values())
-    ne_π = getattr(mRPS, 'π{}'.format(player))
-    return stats.entropy(π, ne_π)
+def compute_mRPS_KL(player, σi):
+    σi = list(σi.values())
+    ne_σi = getattr(mRPS, 'σ{}'.format(player))
+    return stats.entropy(σi, ne_σi)
 
 def compute_mRPS_players_utility(a0, a1):
     u0 = {}
@@ -33,9 +33,9 @@ def compute_mRPS_players_utility(a0, a1):
         u1[a] = -mRPS._u0_matrix[a0][a]
     return u0, u1
 
-def compute_mRPS_expected_gains(π0, π1):
+def compute_mRPS_expected_gains(σ0, σ1):
     E_gain_0 = 0
     for a0 in range(3):
         for a1 in range(3):
-            E_gain_0 += π0[a0]*π1[a1]*mRPS._u0_matrix[a0][a1]
+            E_gain_0 += σ0[a0]*σ1[a1]*mRPS._u0_matrix[a0][a1]
     return E_gain_0, -E_gain_0
