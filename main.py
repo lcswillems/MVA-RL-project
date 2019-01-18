@@ -17,8 +17,8 @@ parser.add_argument('--algo', required=True,
                     help='algorithm: Exp3P or CFR')
 parser.add_argument('--iters', type=int, default=10000,
                     help='number of policy updates (default: 10000)')
-parser.add_argument('--eval-iters', type=int, default=10000,
-                    help='number of parties again expert to evaluate (default: 10000)')
+parser.add_argument('--eval-iters', type=int, default=1000,
+                    help='number of parties again expert to evaluate (default: 1000)')
 parser.add_argument('--eta', type=float, default=0,
                     help='η parameter for EWF, Exp3, Exp3P')
 parser.add_argument('--gamma', type=float, default=0,
@@ -144,21 +144,21 @@ if args.game in ['mRPS', 'bNFG']:
     plt.suptitle("{} {}".format(args.algo, hps_to_tstr(hps)), size=12, weight='bold')
     plt.subplot(3, 2, 1)
     plot(plt, iters, N_distss_0)
-    # plt.ylim(0, .5)
+    plt.ylim(0, .5)
     plt.title("Distance to NE 1")
     plt.subplot(3, 2, 2)
     plot(plt, iters, N_distss_1)
-    # plt.ylim(0, .5)
+    plt.ylim(0, .5)
     plt.title("Distance to NE 2")
     plt.subplot(3, 2, 3)
     plot(plt, iters, E_gainss_0)
     plt.axhline(y=game.v0, color='r')
-    # plt.ylim(.1, .6)
+    plt.ylim(0, .5)
     plt.title("Expected gain & value 1")
     plt.subplot(3, 2, 4)
     plot(plt, iters, E_gainss_1)
     plt.axhline(y=game.v1, color='r')
-    # plt.ylim(-.6, -.1)
+    plt.ylim(-.5, 0)
     plt.title("Expected gain & value 2")
     plt.subplot(3, 2, 5)
     plot(plt, iters, regretss_0)
