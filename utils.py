@@ -2,7 +2,7 @@ import scipy.stats as stats
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 
-from algos import EWF, Exp3, Exp3P, CFR
+from algos import EWF, Exp3, Exp3P, CFR, CFRp
 from games import mRPS
 
 def hps_to_fstr(hps):
@@ -18,6 +18,12 @@ def load_MAB_algo(actions, args):
         return Exp3(actions, args.eta)
     elif args.algo == 'Exp3P':
         return Exp3P(actions, args.eta, args.gamma, args.beta)
+
+def load_CFR_algo(game, args):
+    if args.algo == 'CFR':
+        return CFR(game)
+    elif args.algo == 'CFRp':
+        return CFRp(game)
 
 def plot(plt, iters, valuess, σ=5):
     m = np.amin(valuess, axis=0)

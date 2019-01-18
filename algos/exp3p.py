@@ -35,11 +35,14 @@ class Exp3P:
 
     def _update_w(self, u):
         self.w *= np.exp(self.η * u)
-        self._update_σi_aσi()
+        self._update_σi()
+        self._update_aσi()
 
-    def _update_σi_aσi(self):
+    def _update_σi(self):
         self._σi = (1-self.γ) * self.w / np.sum(self.w) + self.γ / self._nb_actions
         self.σi = {self._actions[i]: self._σi[i] for i in range(self._nb_actions)}
+
+    def _update_aσi(self):
         for a in self._actions:
             self.sσi[a] += self.σi[a]
             self.aσi[a] = self.sσi[a]/self.T

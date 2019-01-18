@@ -7,7 +7,7 @@ import numpy as np
 
 from algos import CFR
 from games import mRPS, TTT
-from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, plot, compute_mRPS_KL,\
+from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, load_CFR_algo, plot, compute_mRPS_KL,\
                   compute_mRPS_expected_gains, compute_mRPS_players_utility
 
 parser = argparse.ArgumentParser()
@@ -64,7 +64,7 @@ if args.game == 'mRPS':
             algo0 = load_MAB_algo(actions, args)
             algo1 = load_MAB_algo(actions, args)
         elif is_CFR_algo:
-            algo = CFR(game)
+            algo = load_CFR_algo(game, args)
 
         # For plots
         N_KLs_0 = []
