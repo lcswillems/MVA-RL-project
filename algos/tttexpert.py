@@ -16,8 +16,8 @@ def pretty_grid(grid):
             display += "\n-----------\n"
     return display
 
-def TTT_expert_σ(G):
-    print("Computing expert strategy...")
+def TTT_optimal_σ(G):
+    print("Computing optimal strategy...")
 
     σ = {}
 
@@ -32,6 +32,6 @@ def TTT_expert_σ(G):
 
     aux_best_u(G.init_h)
 
-    print("Expert strategy computed.")
+    print("Optimal strategy computed.")
 
     return σ

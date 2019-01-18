@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
-from algos import TTT_expert_σ
+from algos import TTT_optimal_σ
 from games import mRPS, bNFG, TTT
 from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, load_CFR_algo, plot, compute_dist_dist,\
                   compute_expected_gains, compute_players_utility
@@ -18,7 +18,7 @@ parser.add_argument('--algo', required=True,
 parser.add_argument('--iters', type=int, default=10000,
                     help='number of policy updates (default: 10000)')
 parser.add_argument('--eval-iters', type=int, default=1000,
-                    help='number of parties again expert to evaluate (default: 1000)')
+                    help='number of parties again optimal to evaluate (default: 1000)')
 parser.add_argument('--eta', type=float, default=0,
                     help='η parameter for EWF, Exp3, Exp3P')
 parser.add_argument('--gamma', type=float, default=0,
@@ -178,7 +178,7 @@ elif args.game == 'TTT':
 
     game = TTT()
     algo = load_CFR_algo(game, args)
-    expert_σ = TTT_expert_σ(game)
+    optimal_σ = TTT_optimal_σ(game)
 
     # For plots
     mean_us = []
@@ -196,7 +196,7 @@ elif args.game == 'TTT':
                     d = algo.σ[h.I.id]
                     a = np.random.choice(list(d.keys()), p=list(d.values()))
                 else:
-                    a = expert_σ[h.I.id]
+                    a = optimal_σ[h.I.id]
                 h = h.next(a)
                 j = (j+1)%2
             us.append(game.u(h, j0))
