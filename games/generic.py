@@ -59,3 +59,29 @@ class InformationSet:
     @abstractproperty
     def terminal(self):
         pass
+
+class ZeroSumNormalFormGameHistory(History):
+    def __init__(self, h=None, a=None):
+        self._player = 0 if h == None else h.player + 1
+
+        super().__init__(h, a)
+
+    @property
+    def player(self):
+        return self._player
+
+class ZeroSumNormalFormGameInformationSet(InformationSet):
+    def __init__(self, h):
+        super().__init__(h)
+
+    @property
+    def id(self):
+        return self.player
+
+    @property
+    def initial(self):
+        return self.id == 0
+
+    @property
+    def terminal(self):
+        return self.id == 2

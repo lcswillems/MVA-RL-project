@@ -1,42 +1,18 @@
 import numpy as np
 
-from .generic import History, InformationSet
+from .generic import ZeroSumNormalFormGameHistory, ZeroSumNormalFormGameInformationSet
 
-class mRPSHistory(History):
-    def __init__(self, h=None, a=None):
-        self._player = 0 if h == None else h.player + 1
-
-        super().__init__(h, a)
-
-    @property
-    def player(self):
-        return self._player
-
+class mRPSHistory(ZeroSumNormalFormGameHistory):
     @property
     def _information_set_class(self):
         return mRPSInformationSet
 
-class mRPSInformationSet(InformationSet):
-    def __init__(self, h):
-        super().__init__(h)
-
-    @property
-    def id(self):
-        return self.player
-
+class mRPSInformationSet(ZeroSumNormalFormGameInformationSet):
     @property
     def available_actions(self):
         if self.id < 2:
             return [0, 1, 2]
         return []
-
-    @property
-    def initial(self):
-        return self.id == 0
-
-    @property
-    def terminal(self):
-        return self.id == 2
 
 class mRPS:
     """Modified Rock Paper Scissors game."""

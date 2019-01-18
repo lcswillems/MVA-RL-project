@@ -21,11 +21,11 @@ class TTTInformationSet(InformationSet):
     def __init__(self, h):
         super().__init__(h)
 
-        if h == None:
+        prev_h, prev_a = h.previous
+        if prev_h == None:
             self.grid = [[0 for _ in range(3)] for _ in range(3)]
             self._free_actions = list(range(9))
         else:
-            prev_h, prev_a = h.previous
             self.grid = [[item for item in line] for line in prev_h.I.grid]
             self._free_actions = [item for item in prev_h.I._free_actions]
             self._add_grid(prev_a, prev_h.player)
@@ -63,16 +63,16 @@ class TTTInformationSet(InformationSet):
         for i in range(3):
             # Lines
             if self.grid[i][0] != 0 and self.grid[i][0] == self.grid[i][1] == self.grid[i][2]:
-                return self.grid[i][0]
+                return self.grid[i][0] - 1
             # Columns
             if self.grid[0][i] != 0 and self.grid[0][i] == self.grid[1][i] == self.grid[2][i]:
-                return self.grid[0][i]
+                return self.grid[0][i] - 1
         # Diagonal 1
         if self.grid[0][0] != 0 and self.grid[0][0] == self.grid[1][1] == self.grid[2][2]:
-            return self.grid[0][0]
+            return self.grid[0][0] - 1
         # Diagonal 2
         if self.grid[0][2] != 0 and self.grid[0][2] == self.grid[1][1] == self.grid[2][0]:
-            return self.grid[0][2]
+            return self.grid[0][2] - 1
         return None
 
 class TTT:
@@ -83,6 +83,8 @@ class TTT:
         self.init_h = TTTHistory()
 
     def u(self, h, player):
-        if player == h.I.winner:
+        if h.I.winner == None:
+            return 0
+        elif h.I.winner == player:
             return 1
         return -1

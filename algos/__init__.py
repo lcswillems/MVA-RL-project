@@ -3,3 +3,4 @@ from .exp3 import Exp3
 from .exp3p import Exp3P
 from .cfr import CFR
 from .cfrp import CFRp
+from .tttexpert import TTT_expert_σ

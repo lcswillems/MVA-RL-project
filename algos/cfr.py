@@ -32,7 +32,7 @@ class CFR:
                 next_h = h.next(a)
                 stack.append(next_h)
 
-        print("Tree cached.")
+        print("Game tree cached.")
 
     def _init_v(self):
         # v[I.id] gives u'_i(σ, I) where i = I.player.

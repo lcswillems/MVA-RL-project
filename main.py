@@ -5,18 +5,20 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
-from algos import CFR
-from games import mRPS, TTT
-from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, load_CFR_algo, plot, compute_mRPS_KL,\
-                  compute_mRPS_expected_gains, compute_mRPS_players_utility
+from algos import TTT_expert_σ
+from games import mRPS, bNFG, TTT
+from utils import hps_to_tstr, hps_to_fstr, load_MAB_algo, load_CFR_algo, plot, compute_dist_dist,\
+                  compute_expected_gains, compute_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
-                    help='game: mRPS or TTT')
+                    help='game: mRPS, bNFG or TTT')
 parser.add_argument('--algo', required=True,
                     help='algorithm: Exp3P or CFR')
-parser.add_argument('--iters', type=int, default='10000',
+parser.add_argument('--iters', type=int, default=10000,
                     help='number of policy updates (default: 10000)')
+parser.add_argument('--eval-iters', type=int, default=10000,
+                    help='number of parties again expert to evaluate (default: 10000)')
 parser.add_argument('--eta', type=float, default=0,
                     help='η parameter for EWF, Exp3, Exp3P')
 parser.add_argument('--gamma', type=float, default=0,
@@ -27,7 +29,7 @@ parser.add_argument('--nb-seeds', type=int, default=5,
                     help='number of seeds to average the results on for MAB algos (default: 5)')
 args = parser.parse_args()
 
-assert args.game in ['mRPS', 'TTT']
+assert args.game in ['mRPS', 'bNFG', 'TTT']
 assert args.algo in ['EWF', 'Exp3', 'Exp3P', 'CFR', 'CFRp']
 
 is_MAB_algo = args.algo in ['EWF', 'Exp3', 'Exp3P']
@@ -45,13 +47,16 @@ matplotlib.rcParams.update({'font.size': 8})
 
 iters = np.arange(1, args.iters+1)
 
-if args.game == 'mRPS':
-    game = mRPS()
+if args.game in ['mRPS', 'bNFG']:
+    if args.game == 'mRPS':
+        game = mRPS()
+    elif args.game == 'bNFG':
+        game = bNFG()
     actions = game.init_h.I.available_actions
 
     # For plots
-    N_KLss_0 = []
-    N_KLss_1 = []
+    N_distss_0 = []
+    N_distss_1 = []
     E_gainss_0 = []
     E_gainss_1 = []
     regretss_0 = []
@@ -70,8 +75,8 @@ if args.game == 'mRPS':
             algo = load_CFR_algo(game, args)
 
         # For plots
-        N_KLs_0 = []
-        N_KLs_1 = []
+        N_dists_0 = []
+        N_dists_1 = []
         E_gains_0 = []
         E_gains_1 = []
         if is_MAB_algo:
@@ -107,15 +112,15 @@ if args.game == 'mRPS':
                 σ1 = algo.aσ[1]
 
             # For plots
-            E_gain_0, E_gain_1 = compute_mRPS_expected_gains(σ0, σ1)
+            E_gain_0, E_gain_1 = compute_expected_gains(game, σ0, σ1)
             E_gains_0.append(E_gain_0)
             E_gains_1.append(E_gain_1)
-            KL_0 = compute_mRPS_KL(0, σ0)
-            KL_1 = compute_mRPS_KL(1, σ1)
-            N_KLs_0.append(KL_0)
-            N_KLs_1.append(KL_1)
+            dist_0 = compute_dist_dist(game, 0, σ0)
+            dist_1 = compute_dist_dist(game, 1, σ1)
+            N_dists_0.append(dist_0)
+            N_dists_1.append(dist_1)
             if is_MAB_algo:
-                u0, u1 = compute_mRPS_players_utility(a0, a1)
+                u0, u1 = compute_players_utility(game, a0, a1)
                 S0 = {a: S0[a] + u0[a] - u0[a0] for a in actions}
                 S1 = {a: S1[a] + u1[a] - u1[a1] for a in actions}
                 regret_0 = 1/i * max([S0[a] for a in actions])
@@ -127,8 +132,8 @@ if args.game == 'mRPS':
             regrets_1.append(regret_1)
 
         # For plots
-        N_KLss_0.append(N_KLs_0)
-        N_KLss_1.append(N_KLs_1)
+        N_distss_0.append(N_dists_0)
+        N_distss_1.append(N_dists_1)
         E_gainss_0.append(E_gains_0)
         E_gainss_1.append(E_gains_1)
         regretss_0.append(regrets_0)
@@ -138,22 +143,22 @@ if args.game == 'mRPS':
     plot_path = 'storage/{}_{}_N{}_{}.png'.format(args.game, args.algo, args.iters, hps_to_fstr(hps))
     plt.suptitle("{} {}".format(args.algo, hps_to_tstr(hps)), size=12, weight='bold')
     plt.subplot(3, 2, 1)
-    plot(plt, iters, N_KLss_0)
-    plt.ylim(0, .5)
-    plt.title("KL with NE 1")
+    plot(plt, iters, N_distss_0)
+    # plt.ylim(0, .5)
+    plt.title("Distance to NE 1")
     plt.subplot(3, 2, 2)
-    plot(plt, iters, N_KLss_1)
-    plt.ylim(0, .5)
-    plt.title("KL with NE 2")
+    plot(plt, iters, N_distss_1)
+    # plt.ylim(0, .5)
+    plt.title("Distance to NE 2")
     plt.subplot(3, 2, 3)
     plot(plt, iters, E_gainss_0)
-    plt.axhline(y=mRPS.v0, color='r')
-    plt.ylim(.1, .6)
+    plt.axhline(y=game.v0, color='r')
+    # plt.ylim(.1, .6)
     plt.title("Expected gain & value 1")
     plt.subplot(3, 2, 4)
     plot(plt, iters, E_gainss_1)
-    plt.axhline(y=mRPS.v1, color='r')
-    plt.ylim(-.6, -.1)
+    plt.axhline(y=game.v1, color='r')
+    # plt.ylim(-.6, -.1)
     plt.title("Expected gain & value 2")
     plt.subplot(3, 2, 5)
     plot(plt, iters, regretss_0)
@@ -163,5 +168,47 @@ if args.game == 'mRPS':
     plot(plt, iters, regretss_1)
     plt.ylim(0, 1)
     plt.title("Regret 2")
+    plt.tight_layout(rect=[0, 0, 1, .95])
+    plt.savefig(plot_path)
+
+elif args.game == 'TTT':
+    assert args.algo in ['CFR', 'CFRp']
+
+    eval_iters = np.arange(1, args.eval_iters+1)
+
+    game = TTT()
+    algo = load_CFR_algo(game, args)
+    expert_σ = TTT_expert_σ(game)
+
+    # For plots
+    mean_us = []
+
+    for _ in tqdm(iters):
+        algo.update_policy()
+
+        us = []
+        for i in tqdm(eval_iters):
+            h = game.init_h
+            j0 = i%2
+            j = 0
+            while not h.I.terminal:
+                if j == j0:
+                    d = algo.σ[h.I.id]
+                    a = np.random.choice(list(d.keys()), p=list(d.values()))
+                else:
+                    a = expert_σ[h.I.id]
+                h = h.next(a)
+                j = (j+1)%2
+            us.append(game.u(h, j0))
+
+        # For plots
+        mean_us.append(np.mean(us))
+
+    # For plots
+    plot_path = 'storage/{}_{}_N{}.png'.format(args.game, args.algo, args.iters)
+    plt.suptitle(args.algo, size=12, weight='bold')
+    plt.plot(iters, mean_us)
+    plt.ylim(-1.1, 0.1)
+    plt.title("Utility against expert")
     plt.tight_layout(rect=[0, 0, 1, .95])
     plt.savefig(plot_path)
