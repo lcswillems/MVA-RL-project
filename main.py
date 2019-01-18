@@ -8,7 +8,7 @@ import os
 
 from algos import CFR
 from games import mRPS, TTT
-from utils import load_MAB_algo, smooth, compute_mRPS_KL, compute_mRPS_expected_gains, compute_mRPS_players_utility
+from utils import load_MAB_algo, plot, compute_mRPS_KL, compute_mRPS_expected_gains, compute_mRPS_players_utility
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', required=True,
@@ -135,29 +135,29 @@ if args.game == 'mRPS':
 
     # For plots
     plt.subplot(3, 2, 1)
-    plt.plot(iters, smooth(np.mean(N_KLss_0, axis=0)))
+    plot(plt, iters, N_KLss_0)
     plt.ylim(0, .5)
     plt.title("KL with NE 1")
     plt.subplot(3, 2, 2)
-    plt.plot(iters, smooth(np.mean(N_KLss_1, axis=0)))
+    plot(plt, iters, N_KLss_1)
     plt.ylim(0, .5)
     plt.title("KL with NE 2")
     plt.subplot(3, 2, 3)
-    plt.plot(iters, smooth(np.mean(E_gainss_0, axis=0)))
+    plot(plt, iters, E_gainss_0)
     plt.axhline(y=mRPS.v0, color='r')
     plt.ylim(.1, .6)
     plt.title("Expected gain & value 1")
     plt.subplot(3, 2, 4)
-    plt.plot(iters, smooth(np.mean(E_gainss_1, axis=0)))
+    plot(plt, iters, E_gainss_1)
     plt.axhline(y=mRPS.v1, color='r')
     plt.ylim(-.6, -.1)
     plt.title("Expected gain & value 2")
     plt.subplot(3, 2, 5)
-    plt.plot(iters, smooth(np.mean(regretss_0, axis=0)))
+    plot(plt, iters, regretss_0)
     plt.ylim(0, 1)
     plt.title("Regret 1")
     plt.subplot(3, 2, 6)
-    plt.plot(iters, smooth(np.mean(regretss_1, axis=0)))
+    plot(plt, iters, regretss_1)
     plt.ylim(0, 1)
     plt.title("Regret 2")
     plt.tight_layout()

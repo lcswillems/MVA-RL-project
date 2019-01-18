@@ -13,8 +13,12 @@ def load_MAB_algo(actions, args):
     elif args.algo == 'Exp3P':
         return Exp3P(actions, args.eta, args.gamma, args.beta)
 
-def smooth(data, σ=5):
-    return gaussian_filter1d(data, σ)
+def plot(plt, iters, valuess, σ=5):
+    m = np.amin(valuess, axis=0)
+    median = np.median(valuess, axis=0)
+    M = np.amax(valuess, axis=0)
+    plt.plot(iters, median)
+    plt.fill_between(iters, m, M, alpha=.3)
 
 def compute_mRPS_KL(player, π):
     π = list(π.values())
