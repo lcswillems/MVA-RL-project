@@ -24,7 +24,7 @@ parser.add_argument('--gamma', type=float, default=0,
 parser.add_argument('--beta', type=float, default=0,
                     help='β parameter for Exp3P')
 parser.add_argument('--nb-seeds', type=int, default=5,
-                    help='number of seeds to average the results on (default: 5)')
+                    help='number of seeds to average the results on for MAB algos (default: 5)')
 args = parser.parse_args()
 
 assert args.game in ['mRPS', 'TTT']
@@ -57,7 +57,10 @@ if args.game == 'mRPS':
     regretss_0 = []
     regretss_1 = []
 
-    for seed in tqdm(range(args.nb_seeds)):
+    for i, seed in tqdm(enumerate(range(args.nb_seeds))):
+        if is_CFR_algo and i > 0:
+            break
+
         np.random.seed(seed)
 
         if is_MAB_algo:
