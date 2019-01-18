@@ -89,8 +89,8 @@ if args.game == 'NFG':
                     p1.update_policy(u1)
 
                 # For plots
-                π0 = p0.π
-                π1 = p1.π
+                π0 = p0.aπ
+                π1 = p1.aπ
                 E_gain_0, E_gain_1 = compute_NFG_expected_gains(π0, π1)
                 E_gains_0.append(E_gain_0)
                 E_gains_1.append(E_gain_1)

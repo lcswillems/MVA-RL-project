@@ -9,8 +9,8 @@ class CFR:
     def __init__(self, G):
         self.G = G
         self._cache_tree_game()
-        self.T = 0
 
+        self.T = 0
         self._init_v()
         self._init_Sp()
         self._init_σ_aσ()
@@ -62,7 +62,7 @@ class CFR:
             l = len(I.available_actions)
             self.σ[I.id] = {a: 1/l for a in I.available_actions}
             self.sσ[I.id] = {a: 0 for a in I.available_actions}
-            self.aσ[I.id] = {a: 1/l for a in I.available_actions}
+            self.aσ[I.id] = {a: self.σ[I.id][a] for a in I.available_actions}
 
     def update_policy(self):
         self.T += 1

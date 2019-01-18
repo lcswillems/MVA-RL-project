@@ -4,4 +4,5 @@ from .exp3 import Exp3
 
 class EWF(Exp3):
     def update_policy(self, u):
-        self._update_weights(u)
+        self.T += 1
+        self._update_w(u)
