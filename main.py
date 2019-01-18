@@ -209,6 +209,6 @@ elif args.game == 'TTT':
     plt.suptitle(args.algo, size=12, weight='bold')
     plt.plot(iters, mean_us)
     plt.ylim(-1.1, 0.1)
-    plt.title("Utility against expert")
+    plt.title("Average utility")
     plt.tight_layout(rect=[0, 0, 1, .95])
     plt.savefig(plot_path)
