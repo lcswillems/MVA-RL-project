@@ -11,14 +11,13 @@ class CFR:
         self._cache_tree_game()
 
         self.T = 0
-        self._init_v()
         self._init_Sp()
         self._init_σ_aσ()
 
     def _cache_tree_game(self):
         print("Caching game tree...")
 
-        self.G.uIs = set()
+        self.G.player_uIs = {}
         self.G.hTs = []
 
         stack = [self.G.init_h]
@@ -27,30 +26,16 @@ class CFR:
             if h.I.terminal:
                 self.G.hTs.append(h)
             else:
-                self.G.uIs.add(h.I)
+                if not h.I.player in self.G.player_uIs.keys():
+                    self.G.player_uIs[h.I.player] = set()
+                self.G.player_uIs[h.I.player].add(h.I)
             for a in h.I.available_actions:
                 next_h = h.next(a)
                 stack.append(next_h)
 
+        self.G.uIs = set.union(*self.G.player_uIs.values())
+
         print("Game tree cached.")
-
-    def _init_v(self):
-        # v[I.id] gives u'_i(σ, I) where i = I.player.
-        # v[I.id, a] gives u'_i(σ|I->a, I) where i = I.player.
-        self.v = {}
-
-        # π_[i, h] gives π^σ_{-i}(h).
-        self.π_ = {}
-
-        # π[I.id] gives π^σ(I).
-        # π[h, hT] gives π^σ(h, hT).
-        self.π = {}
-
-        for I in self.G.uIs:
-            self.v[I.id] = 0
-            self.π[I.id] = 0
-            for a in I.available_actions:
-                self.v[I.id, a] = 0
 
     def _init_Sp(self):
         # S[I.id][a] gives T*R_i^{T}(I, a) where i = I.player and T = self.T.
@@ -77,13 +62,30 @@ class CFR:
 
     def update_policy(self):
         self.T += 1
-        self._update_v()
+        if not hasattr(self, 'uIs'):
+            self.running_uIs = self.G.uIs
+        self._compute_v()
         self._update_Sp()
         self._update_σ()
         self._update_aσ()
 
-    def _update_v(self):
-        self._init_v()
+    def _compute_v(self):
+        # v[I.id] gives u'_i(σ, I) where i = I.player.
+        # v[I.id, a] gives u'_i(σ|I->a, I) where i = I.player.
+        self.v = {}
+
+        # π_[i, h] gives π^σ_{-i}(h).
+        self.π_ = {}
+
+        # π[I.id] gives π^σ(I).
+        # π[h, hT] gives π^σ(h, hT).
+        self.π = {}
+
+        for I in self.G.uIs:
+            self.v[I.id] = 0
+            self.π[I.id] = 0
+            for a in I.available_actions:
+                self.v[I.id, a] = 0
 
         h = self.G.init_h
         self.π[h.I.id] += 1
@@ -116,13 +118,13 @@ class CFR:
                 self.v[h.I.id, a] += self.π_[h.player, h] * self.π[next_h, hT] * self.G.u(hT, h.I.player)
 
     def _update_Sp(self):
-        for I in self.G.uIs:
+        for I in self.running_uIs:
             for a in I.available_actions:
                 self.S[I.id][a] += self.v[I.id, a] - self.v[I.id]
                 self.Sp[I.id][a] = max(self.S[I.id][a], 0)
 
     def _update_σ(self):
-        for I in self.G.uIs:
+        for I in self.running_uIs:
             actions = I.available_actions
             sp = self.Sp[I.id]
             normalize = sum(sp.values())
@@ -134,7 +136,7 @@ class CFR:
             self.σ[I.id] = d
 
     def _update_aσ(self):
-        for I in self.G.uIs:
+        for I in self.running_uIs:
             for a in I.available_actions:
                 self.sσ_num[I.id][a] += self.π[I.id]*self.σ[I.id][a]
                 self.sσ_den[I.id][a] += self.π[I.id]
