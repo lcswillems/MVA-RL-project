@@ -10,6 +10,8 @@
 - a big normal form game with 15 actions (bNFG)
 - Tic Tac Toe (TTT)
 
+**Note: The chance player of CFR/CFR+ is not implemented.**
+
 # Comparing EWF, Exp3, Exp3.P, CFR on mRPS
 
 ```
